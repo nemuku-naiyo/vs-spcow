@@ -246,7 +246,8 @@ body.tunemode.st-play .modetag{display:block}
 <div id="err" style="position:fixed;left:12px;right:12px;top:40%;padding:12px;border-radius:10px;background:#fff;color:#7A1F2E;font-size:.85rem;display:none;white-space:pre-wrap"></div>
 <script>
 function showErr(m){const e=document.getElementById('err');e.style.display='block';e.textContent+=m+'\n'}
-window.addEventListener('error',ev=>showErr('エラー: '+(ev.message||ev.type)+(ev.filename?' ('+ev.filename.split('/').pop()+':'+ev.lineno+')':'')),true);
+window.addEventListener('error',ev=>{ if(ev.target&&ev.target!==window) return;   // ファイルの読み込み失敗（lib/three.min.js が無い等）は表示しない。CDNで代わりに読む
+  showErr('エラー: '+(ev.message||ev.type)+(ev.filename?' ('+ev.filename.split('/').pop()+':'+ev.lineno+')':'')); },true);
 </script>
 <!-- three.js：まず同じフォルダの lib/three.min.js を使い、なければCDNから読み込む -->
 <script src="lib/three.min.js"></script>
@@ -665,7 +666,7 @@ function updateShots(dt){
   // 被弾の白い光り
   bossFlash=Math.max(0,bossFlash-dt); bossBody.material.emissive=bossBody.material.emissive||new THREE.Color();
   bossBody.material.emissive.setHex(0xffffff); bossBody.material.emissiveIntensity=bossFlash>0?0.55:0;
-  reticle.position.copy(aimTarget()); reticle.material.opacity=input.fire?1:0.55;
+  reticle.position.copy(aimTarget()); reticle.material.opacity=input.fire?1:0.55; reticle.visible=gameState==='play'&&bossHP>0;
   gem.material.emissiveIntensity=0.5+0.35*Math.sin(t*4); gemGlow.material.opacity=0.4+0.25*Math.sin(t*4);
   if(toastT>0){ toastT-=dt; if(toastT<=0) toastEl.classList.remove('show'); }
 }
@@ -1494,7 +1495,7 @@ function step(now){
 }
 // ===== ゲームの流れ：タイトル → 物語 → 戦闘（→DIVE）→ エンディング → リザルト ／ ゲームオーバー =====
 const introEl=document.getElementById('intro'), titleScr=document.getElementById('titleScr'), resultScr=document.getElementById('resultScr'), overScr=document.getElementById('overScr');
-function setState(st){ gameState=st; if(typeof pauseOpen!=='undefined'&&pauseOpen){ pauseOpen=false; pauseScr.hidden=true; } ['title','story','play','ending','result','over'].forEach(k=>document.body.classList.toggle('st-'+k,k===st));
+function setState(st){ gameState=st; if(typeof reticle!=='undefined') reticle.visible=st==='play'; if(typeof pauseOpen!=='undefined'&&pauseOpen){ pauseOpen=false; pauseScr.hidden=true; } ['title','story','play','ending','result','over'].forEach(k=>document.body.classList.toggle('st-'+k,k===st));
   titleScr.hidden=st!=='title'; introEl.hidden=st!=='story'; resultScr.hidden=st!=='result'; overScr.hidden=st!=='over'; resize(); }
 function fmtTime(sec){ const m=Math.floor(sec/60), s2=Math.floor(sec%60); return m+'分'+String(s2).padStart(2,'0')+'秒' }
 function loadBest(){ try{ return JSON.parse(localStorage.getItem('vs-spcow-best')||'{}') }catch(e){ return {} } }
