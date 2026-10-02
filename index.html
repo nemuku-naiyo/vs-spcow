@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <title>VS.スプカウ</title>
 <meta name="description" content="暴走した電脳スプカウを、うーちーが救う。円形ステージの3Dボスバトル。">
 <meta name="theme-color" content="#06041A">
@@ -23,7 +23,10 @@
 /* 世界がネオンの夜なので、ライト／ダークどちらでも同じ暗い配色を使う */
 @media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){ --pad:rgba(14,10,36,.72); } }
 :root[data-theme="dark"]{ --pad:rgba(14,10,36,.72); }
-html,body{height:100%;margin:0;overflow:hidden}
+html,body{height:100%;margin:0;overflow:hidden;overscroll-behavior:none}
+html,body,body *{touch-action:none;-webkit-touch-callout:none;-webkit-tap-highlight-color:transparent}
+.tune,.tune *{touch-action:pan-y}
+.tune textarea{-webkit-user-select:text;user-select:text}
 body{background:var(--sky-bottom);color:var(--ink);font-family:"M PLUS Rounded 1c","Hiragino Maru Gothic ProN","Yu Gothic",system-ui,sans-serif;
   -webkit-user-select:none;user-select:none;touch-action:none}
 #stage{position:fixed;top:0;left:0;right:0;bottom:var(--deck);display:block;width:100%;height:calc(100% - var(--deck))}
@@ -245,6 +248,13 @@ body.tunemode.st-play .modetag{display:block}
 </div>
 <div id="err" style="position:fixed;left:12px;right:12px;top:40%;padding:12px;border-radius:10px;background:#fff;color:#7A1F2E;font-size:.85rem;display:none;white-space:pre-wrap"></div>
 <script>
+['gesturestart','gesturechange','gestureend'].forEach(ev=>document.addEventListener(ev,e=>e.preventDefault(),{passive:false}));   // iOSのピンチ拡大
+document.addEventListener('dblclick',e=>e.preventDefault(),{passive:false});
+{ let lastEnd=0;   // すばやい2回タップ（ダブルタップ拡大）を止める。メニューのボタンや調整パネルは除く
+  document.addEventListener('touchend',e=>{ const n=Date.now(), tg=e.target;
+    const exempt=tg.closest&&tg.closest('button,input,textarea,.tune,.scr,.intro');
+    if(!exempt&&n-lastEnd<350) e.preventDefault(); lastEnd=n; },{passive:false});
+  document.addEventListener('touchmove',e=>{ if(e.touches.length>1) e.preventDefault(); },{passive:false}); }   // 2本指の拡大
 addEventListener('unhandledrejection',e=>{ console.warn(e.reason); e.preventDefault(); });
 function showErr(m){ if(/^エラー: Script error\.?$/.test(m)){ console.warn(m); return; }   // 別サイトのスクリプト由来で中身が分からないものは出さない
   const e=document.getElementById('err'); e.style.display='block'; e.textContent=m; clearTimeout(showErr.t); showErr.t=setTimeout(()=>{e.style.display='none'},5000); e.onclick=()=>{e.style.display='none'} }
