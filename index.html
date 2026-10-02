@@ -1599,12 +1599,16 @@ canvas.addEventListener('pointerdown',e=>{ if(mode==='main'&&(gameState==='title
 canvas.addEventListener('pointerup',()=>{ if(secret.down){ secret.down=false; secret.grace=0.7; } });
 canvas.addEventListener('pointercancel',()=>{ secret.down=false; secret.grace=0; });
 function updateSecret(dt){
-  if(unlocked||!secretTold) return;   // ノーミスで救済して、スプカウに教えてもらってから
+  if(!secretTold) return;   // ノーミスで救済して、スプカウに教えてもらってから
   if(secret.down||secret.grace>0){ secret.t+=dt; secret.grace=Math.max(0,secret.grace-dt); } else { secret.t=0; secret.said=0; }
   if(secret.t>3&&secret.said<1){ secret.said=1; say('…？',1.2); }
-  if(secret.t>6.5&&secret.said<2){ secret.said=2; say('く、くすぐったいモー…',1.6); }
-  if(secret.t>=10){ unlocked=true; try{localStorage.setItem('vs-spcow-unlock','1')}catch(e){} secret.t=0; secret.down=false;
-    sfx.win(); toast('調整モードが解放された！',3.5); say('なにか開いたモー！',2); showBest(); }
+  if(secret.t>6.5&&secret.said<2){ secret.said=2; say(unlocked?'また、くすぐったいモー…':'く、くすぐったいモー…',1.6); }
+  if(secret.t>=10){ secret.t=0; secret.down=false;
+    unlocked=!unlocked;   // もう一度10秒タップすると、調整モードをしまう（また出せる）
+    try{localStorage.setItem('vs-spcow-unlock',unlocked?'1':'0')}catch(e){}
+    if(unlocked){ sfx.win(); toast('調整モードが解放された！',3.5); say('なにか開いたモー！',2); }
+    else { sfx.tired(); toast('調整モードをしまった',3); say('しまったモー',1.6); if(tuneOpen) setTune(false); }
+    showBest(); }
 }
 
 setState('title'); showBest(); bgm.play('title');
