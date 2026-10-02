@@ -179,9 +179,8 @@ body.tunemode.st-play .modetag{display:block}
   <div class="tune-head"><b>調整パネル</b><span>開いている間は一時停止</span></div>
   <div id="tuneBody"></div>
   <div class="tune-foot">
-    <button id="tuneCopy">値をコピー</button><button id="tuneReset">初期値に戻す</button><button id="tuneClose" class="primary">閉じて遊ぶ</button>
+    <button id="tuneReset">初期値に戻す</button><button id="tuneClose" class="primary">閉じて遊ぶ</button>
   </div>
-  <textarea id="tuneOut" readonly hidden aria-label="調整値"></textarea>
 </div>
 <div class="scr title-scr" id="titleScr">
   <div class="logo"><span class="vs">VS.</span>スプカウ</div>
@@ -1103,7 +1102,12 @@ function nextPattern(){
 // コアを割る：破片が飛び散り、中のスプカウが救済されて出てくる
 const shards=[];
 // 救われたスプカウのセリフ（スプカウ視点）
-const SPCOW_TALK=['…うーちー？ たすけてくれて、ありがとう。','みんなと遊びたかっただけなのに…ごめんね。','おれいに、ひみつを教えるね。','うーちーを、10秒間タップしつづけてみて。'];
+function spcowTalk(perfect){
+  const L=['…うーちー？ たすけてくれて、ありがとう。','みんなと遊びたかっただけなのに…ごめんね。'];
+  if(perfect) return L.concat(['ほんとに、ケガしないで来てくれたんだ！','おれいに、ひみつを教えるね。','うーちーを、10秒間タップしつづけてみて。']);
+  return L.concat([(stats.hits>=2?'…でも、うーちー、いっぱいケガしてたね。':'…でも、うーちー、ケガしてたね。'),'こんどは、きずつかないで会いにきて。そしたら、ひみつを教えてあげる。']);
+}
+let secretTold=false; try{ secretTold=localStorage.getItem('vs-spcow-told')==='1' }catch(e){}   // ひみつ（裏コマンド）を教えてもらったか
 // スプカウの吹き出し（電脳世界のスプカウの頭上）
 const bubble2=document.getElementById('bubble2'); let bubble2T=0;
 function spSay(msg,sec){ talk('spcow',msg,sec); }
@@ -1126,7 +1130,9 @@ function breakCore(){
   dv.rescue={t:0};
   stats.dive='成功'; rescued=true; gameState='ending'; setState('ending'); bgm.play('ending'); bossHP=0; bossBar.style.width='0%';
   // 救われたスプカウが話しかけてくる。最後に裏コマンドを教えてくれる
-  const L=SPCOW_TALK; let tt=2400;
+  const perfect=stats.hits===0&&!tuneMode; stats.perfect=perfect;
+  if(perfect){ secretTold=true; try{localStorage.setItem('vs-spcow-told','1')}catch(e){} }
+  const L=spcowTalk(perfect); let tt=2400;
   setTimeout(()=>{ if(gameState==='ending') say(pick('rescue'),2.6); },tt-1200);
   L.forEach((line,i)=>{ setTimeout(()=>{ if(gameState==='ending'){ spSay(line,2.6); if(i===0) sfx.moo('cute'); } },tt+i*2900); });
   setTimeout(()=>{ if(gameState==='ending') showResult('rescue'); },tt+L.length*2900+800);
@@ -1382,15 +1388,6 @@ function setTune(open){ tuneOpen=open; if(open){ sfx.jet(false); frame.jet=false
 tuneBtn.addEventListener('click',()=>{ if(!tuneMode){ setTuneMode(true); bossHP=Math.min(bossHP,T.bossHP); bossBar.style.width=(bossHP/T.bossHP*100)+'%'; showGod(); toast('調整モードに切り替えた（この回はクリア扱いになりません）',3); } setTune(!tuneOpen); });
 document.getElementById('tuneClose').addEventListener('click',()=>setTune(false));
 document.getElementById('tuneReset').addEventListener('click',()=>{ Object.assign(T,TUNE_DEF); saveTune(); buildTune(); bossHP=T.bossHP; curPhase=0; bossBar.style.width='100%'; });
-document.getElementById('tuneCopy').addEventListener('click',async()=>{
-  // 初期値から変えたものだけを書き出す（そのままチャットに貼れる形）
-  const diff={}; for(const k in T) if(T[k]!==TUNE_DEF[k]) diff[k]=T[k];
-  const text='VS.スプカウ 調整値\n'+(Object.keys(diff).length?JSON.stringify(diff,null,1):'（初期値のまま）');
-  const ta=document.getElementById('tuneOut'); ta.value=text; ta.hidden=false; ta.select();
-  const b=document.getElementById('tuneCopy');
-  try{ await navigator.clipboard.writeText(text); b.textContent='コピーした！'; }catch(e){ try{document.execCommand('copy'); b.textContent='コピーした！';}catch(_){ b.textContent='下の文字を選んでコピー'; } }
-  setTimeout(()=>b.textContent='値をコピー',1800);
-});
 tuneEl.addEventListener('keydown',e=>e.stopPropagation());
 const godTag=document.getElementById('godTag'); function showGod(){ godTag.hidden=!(DEBUG.god&&tuneMode) } showGod();
 const muteBtn=document.getElementById('muteBtn');
@@ -1555,7 +1552,7 @@ function showResult(kind){
   let note='';
   if(tuneMode) note='調整モードのため、クリア扱いになりません（記録は残りません）';
   else { const b=loadBest(); if(!b[kind]||fightT<b[kind]){ b[kind]=fightT; try{localStorage.setItem('vs-spcow-best',JSON.stringify(b))}catch(e){} note='ベスト記録を更新！'; } }
-  if(kind==='rescue') note=(note?note+'\n':'')+'ひみつ：うーちーを10秒間タップしつづける';
+  if(kind==='rescue') note=(note?note+'\n':'')+(stats.perfect?'ノーミス救済！ ひみつ：うーちーを10秒間タップしつづける':'スプカウとの約束：こんどは、きずつかないで会いにいく');
   document.getElementById('resNote').textContent=note; document.getElementById('resNote').style.whiteSpace='pre-line';
   setState('result');
 }
@@ -1573,7 +1570,7 @@ function resetRun(withTune){
   clearMainThreats(); hp=3; hpEl.textContent='♥♥♥'; bossHP=T.bossHP; bossBar.style.width='100%'; fightT=0; curPhase=0; diveDone=false; rescued=false;
   atk.phase='idle'; atk.t=2.5; atk.count=0; atk.last=null; atk.redo=null; atk.seqI=0; atk.seqEnd=false; dmgAcc=0; behindT=0; bossStep=null;
   ang=Math.PI/2; vAng=0; y=0; vy=0; grounded=true; fuel=1; invuln=0; bossYaw=-ang; camAng=ang; shake=0;
-  stats.hits=0; stats.chip=0; stats.dive='なし'; bossBody.material.color.copy(TINT[0]);
+  stats.hits=0; stats.chip=0; stats.dive='なし'; stats.perfect=false; bossBody.material.color.copy(TINT[0]);
 }
 // 一時停止
 let pauseOpen=false; const pauseScr=document.getElementById('pauseScr'), timerBtn=document.getElementById('timerBtn');
@@ -1602,7 +1599,7 @@ canvas.addEventListener('pointerdown',e=>{ if(mode==='main'&&(gameState==='title
 canvas.addEventListener('pointerup',()=>{ if(secret.down){ secret.down=false; secret.grace=0.7; } });
 canvas.addEventListener('pointercancel',()=>{ secret.down=false; secret.grace=0; });
 function updateSecret(dt){
-  if(unlocked) return;
+  if(unlocked||!secretTold) return;   // ノーミスで救済して、スプカウに教えてもらってから
   if(secret.down||secret.grace>0){ secret.t+=dt; secret.grace=Math.max(0,secret.grace-dt); } else { secret.t=0; secret.said=0; }
   if(secret.t>3&&secret.said<1){ secret.said=1; say('…？',1.2); }
   if(secret.t>6.5&&secret.said<2){ secret.said=2; say('く、くすぐったいモー…',1.6); }
