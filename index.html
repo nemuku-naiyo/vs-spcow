@@ -1107,7 +1107,7 @@ function spcowTalk(perfect){
   if(perfect) return L.concat(['ほんとに、ケガしないで来てくれたんだ！','おれいに、ひみつを教えるね。','うーちーを、10秒間タップしつづけてみて。']);
   return L.concat([(stats.hits>=2?'…でも、うーちー、いっぱいケガしてたね。':'…でも、うーちー、ケガしてたね。'),'こんどは、きずつかないで会いにきて。そしたら、ひみつを教えてあげる。']);
 }
-let secretTold=false; try{ secretTold=localStorage.getItem('vs-spcow-told')==='1' }catch(e){}   // ひみつ（裏コマンド）を教えてもらったか
+let secretTold=false; try{ secretTold=localStorage.getItem('vs-spcow-told')==='1'||localStorage.getItem('vs-spcow-unlock')==='1' }catch(e){}   // ひみつ（裏コマンド）を教えてもらったか
 // スプカウの吹き出し（電脳世界のスプカウの頭上）
 const bubble2=document.getElementById('bubble2'); let bubble2T=0;
 function spSay(msg,sec){ talk('spcow',msg,sec); }
@@ -1594,7 +1594,7 @@ document.getElementById('btnToTitle').addEventListener('click',toTitle); documen
 // ===== 裏コマンド：うーちーを10秒間タップしつづける（長押しでも、連打でもいい）=====
 const secret={down:false,grace:0,t:0,said:0};
 function nearHero(e){ const v=new THREE.Vector3(hero.position.x,hero.position.y+1.0,hero.position.z).project(camera);
-  const r=canvas.getBoundingClientRect(), x=r.left+(v.x*.5+.5)*r.width, yy=r.top+(-v.y*.5+.5)*r.height; return Math.hypot(e.clientX-x,e.clientY-yy)<Math.max(56,r.width*0.12) }
+  const r=canvas.getBoundingClientRect(), x=r.left+(v.x*.5+.5)*r.width, yy=r.top+(-v.y*.5+.5)*r.height; return Math.hypot(e.clientX-x,e.clientY-yy)<Math.max(80,r.width*0.18) }
 canvas.addEventListener('pointerdown',e=>{ if(mode==='main'&&(gameState==='title'||gameState==='play')&&nearHero(e)){ secret.down=true; } });
 canvas.addEventListener('pointerup',()=>{ if(secret.down){ secret.down=false; secret.grace=0.7; } });
 canvas.addEventListener('pointercancel',()=>{ secret.down=false; secret.grace=0; });
